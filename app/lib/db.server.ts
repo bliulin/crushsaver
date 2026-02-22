@@ -21,6 +21,9 @@ function getDb(): Database.Database {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Migrations: add columns if they don't exist yet
+    try { db.exec(`ALTER TABLE suggestions ADD COLUMN rating INTEGER`); } catch {}
+    try { db.exec(`ALTER TABLE suggestions ADD COLUMN tags TEXT`); } catch {}
   }
   return db;
 }
@@ -31,6 +34,8 @@ export interface Suggestion {
   facebook_id: string | null;
   name: string;
   profile_picture: string | null;
+  rating: number | null;
+  tags: string | null; // JSON-encoded string[]
   created_at: string;
 }
 
@@ -63,11 +68,17 @@ export function addSuggestion(data: {
 
 export function updateSuggestion(
   id: number,
-  data: { facebook_url: string; name: string; profile_picture: string | null }
+  data: {
+    facebook_url: string;
+    name: string;
+    profile_picture: string | null;
+    rating: number | null;
+    tags: string | null;
+  }
 ): void {
   getDb()
     .prepare(
-      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture WHERE id = @id`
+      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture, rating = @rating, tags = @tags WHERE id = @id`
     )
     .run({ id, ...data });
 }

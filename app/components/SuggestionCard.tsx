@@ -56,6 +56,30 @@ export function SuggestionCard({ suggestion, onEdit }: Props) {
           {suggestion.name}
         </a>
         <p className="text-sm text-gray-400 truncate">{suggestion.facebook_url}</p>
+        {(suggestion.rating ?? 0) > 0 && (
+          <div className="flex gap-0.5 mt-0.5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <span
+                key={i}
+                className={`text-sm leading-none ${i <= (suggestion.rating ?? 0) ? "text-yellow-400" : "text-gray-200"}`}
+              >
+                ★
+              </span>
+            ))}
+          </div>
+        )}
+        {(() => {
+          const tags: string[] = suggestion.tags ? JSON.parse(suggestion.tags) : [];
+          return tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {tags.map((tag) => (
+                <span key={tag} className="text-xs bg-blue-50 text-blue-600 rounded-full px-2 py-0.5">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null;
+        })()}
       </div>
 
       <button

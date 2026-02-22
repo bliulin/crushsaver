@@ -14,12 +14,15 @@ export async function action(args: Route.ActionArgs) {
   const url = (formData.get("url") as string)?.trim();
   const name = (formData.get("name") as string)?.trim();
   const picture = (formData.get("picture") as string)?.trim() || null;
+  const ratingRaw = parseInt(formData.get("rating") as string, 10);
+  const rating = ratingRaw >= 1 && ratingRaw <= 5 ? ratingRaw : null;
+  const tagsRaw = (formData.get("tags") as string) || null;
 
   if (!url) return { error: "Please enter a Facebook profile URL." };
   if (!name) return { error: "Please enter a name." };
 
   try {
-    updateSuggestion(id, { facebook_url: url, name, profile_picture: picture });
+    updateSuggestion(id, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return { error: `Failed to save: ${message}` };

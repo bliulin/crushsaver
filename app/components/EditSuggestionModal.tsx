@@ -16,6 +16,9 @@ export function EditSuggestionModal({ suggestion, onClose }: Props) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [picture, setPicture] = useState("");
+  const [rating, setRating] = useState(0);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   // Populate fields when suggestion changes (modal opens)
   useEffect(() => {
@@ -23,6 +26,9 @@ export function EditSuggestionModal({ suggestion, onClose }: Props) {
       setName(suggestion.name);
       setUrl(suggestion.facebook_url);
       setPicture(suggestion.profile_picture ?? "");
+      setRating(suggestion.rating ?? 0);
+      setTags(suggestion.tags ? JSON.parse(suggestion.tags) : []);
+      setTagInput("");
       didSubmitRef.current = false;
       setTimeout(() => inputRef.current?.focus(), 50);
     }
@@ -38,6 +44,23 @@ export function EditSuggestionModal({ suggestion, onClose }: Props) {
       onClose();
     }
   }, [fetcher.state, fetcher.data, onClose]);
+
+  function addTag() {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+    }
+    setTagInput("");
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag();
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags(tags.slice(0, -1));
+    }
+  }
 
   if (!suggestion) return null;
 
@@ -60,6 +83,9 @@ export function EditSuggestionModal({ suggestion, onClose }: Props) {
           action={`/suggestions/${suggestion.id}/edit`}
           className="space-y-3"
         >
+          <input type="hidden" name="rating" value={rating} />
+          <input type="hidden" name="tags" value={JSON.stringify(tags)} />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Facebook Profile URL <span className="text-red-500">*</span>
@@ -99,6 +125,62 @@ export function EditSuggestionModal({ suggestion, onClose }: Props) {
               value={picture}
               onChange={(e) => setPicture(e.target.value)}
               placeholder="https://..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rating
+            </label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setRating(i === rating ? 0 : i)}
+                  className={`text-2xl leading-none transition-colors ${
+                    i <= rating ? "text-yellow-400" : "text-gray-300"
+                  } hover:text-yellow-400`}
+                  aria-label={`${i} star${i !== 1 ? "s" : ""}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags
+            </label>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 rounded-full px-2 py-0.5"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((t) => t !== tag))}
+                      className="hover:text-red-500 leading-none"
+                      aria-label={`Remove tag ${tag}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={addTag}
+              placeholder="Add tag, press Enter"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
