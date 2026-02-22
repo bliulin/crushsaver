@@ -11,7 +11,7 @@ import type { Route } from "./+types/_index";
 export async function loader(args: Route.LoaderArgs) {
   const { userId } = await getAuth(args);
   if (!userId) throw redirect("/sign-in");
-  const suggestions = getAllSuggestions();
+  const suggestions = getAllSuggestions(userId);
   return { suggestions };
 }
 

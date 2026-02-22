@@ -24,12 +24,14 @@ function getDb(): Database.Database {
     // Migrations: add columns if they don't exist yet
     try { db.exec(`ALTER TABLE suggestions ADD COLUMN rating INTEGER`); } catch {}
     try { db.exec(`ALTER TABLE suggestions ADD COLUMN tags TEXT`); } catch {}
+    try { db.exec(`ALTER TABLE suggestions ADD COLUMN user_id TEXT`); } catch {}
   }
   return db;
 }
 
 export interface Suggestion {
   id: number;
+  user_id: string;
   facebook_url: string;
   facebook_id: string | null;
   name: string;
@@ -39,23 +41,25 @@ export interface Suggestion {
   created_at: string;
 }
 
-export function getAllSuggestions(): Suggestion[] {
+export function getAllSuggestions(userId: string): Suggestion[] {
   return getDb()
-    .prepare("SELECT * FROM suggestions ORDER BY created_at DESC")
-    .all() as Suggestion[];
+    .prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY created_at DESC")
+    .all(userId) as Suggestion[];
 }
 
 export function addSuggestion(data: {
+  user_id: string;
   facebook_url: string;
   facebook_id?: string | null;
   name: string;
   profile_picture?: string | null;
 }): Suggestion {
   const stmt = getDb().prepare(`
-    INSERT INTO suggestions (facebook_url, facebook_id, name, profile_picture)
-    VALUES (@facebook_url, @facebook_id, @name, @profile_picture)
+    INSERT INTO suggestions (user_id, facebook_url, facebook_id, name, profile_picture)
+    VALUES (@user_id, @facebook_url, @facebook_id, @name, @profile_picture)
   `);
   const result = stmt.run({
+    user_id: data.user_id,
     facebook_url: data.facebook_url,
     facebook_id: data.facebook_id ?? null,
     name: data.name,
@@ -68,6 +72,7 @@ export function addSuggestion(data: {
 
 export function updateSuggestion(
   id: number,
+  userId: string,
   data: {
     facebook_url: string;
     name: string;
@@ -78,11 +83,11 @@ export function updateSuggestion(
 ): void {
   getDb()
     .prepare(
-      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture, rating = @rating, tags = @tags WHERE id = @id`
+      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture, rating = @rating, tags = @tags WHERE id = @id AND user_id = @user_id`
     )
-    .run({ id, ...data });
+    .run({ id, user_id: userId, ...data });
 }
 
-export function deleteSuggestion(id: number): void {
-  getDb().prepare("DELETE FROM suggestions WHERE id = ?").run(id);
+export function deleteSuggestion(id: number, userId: string): void {
+  getDb().prepare("DELETE FROM suggestions WHERE id = ? AND user_id = ?").run(id, userId);
 }

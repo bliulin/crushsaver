@@ -8,7 +8,7 @@ export async function action(args: Route.ActionArgs) {
   if (!userId) throw redirect("/sign-in");
 
   const id = parseInt(args.params.id, 10);
-  if (!isNaN(id)) deleteSuggestion(id);
+  if (!isNaN(id)) deleteSuggestion(id, userId);
 
   return redirect("/");
 }

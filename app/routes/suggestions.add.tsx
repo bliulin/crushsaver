@@ -17,6 +17,7 @@ export async function action(args: Route.ActionArgs) {
   if (!name) return { error: "Please enter a name." };
 
   await addSuggestion({
+    user_id: userId,
     facebook_url: url,
     facebook_id: extractIdentifierFromUrl(url) ?? null,
     name,

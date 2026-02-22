@@ -22,7 +22,7 @@ export async function action(args: Route.ActionArgs) {
   if (!name) return { error: "Please enter a name." };
 
   try {
-    updateSuggestion(id, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
+    updateSuggestion(id, userId, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return { error: `Failed to save: ${message}` };
