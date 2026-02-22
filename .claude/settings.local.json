@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/dev/crushsaver && npx create-remix@latest . --template remix-run/remix/templates/vite --no-git-init --yes 2>&1)",
+      "Bash(cd /c/dev/crushsaver && npx create-react-router@latest . --template remix-run/remix/templates/vite --no-git-init --yes 2>&1)",
+      "Bash(cd /c/dev/crushsaver && npx create-react-router@latest . --no-git-init --yes 2>&1)",
+      "Bash(tail:*)",
+      "Bash(cd /c/dev/crushsaver && npm run typecheck 2>&1)",
+      "Bash(rm /c/dev/crushsaver/app/routes/home.tsx && cd /c/dev/crushsaver && npm run typecheck 2>&1)",
+      "Bash(cd /c/dev/crushsaver && npm run build 2>&1)",
+      "Bash(cd /c/dev/crushsaver && npm run dev 2>&1)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "Bash(cmd.exe:*)"
+    ]
+  }
+}
