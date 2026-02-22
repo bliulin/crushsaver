@@ -13,12 +13,9 @@ export async function action({ request }: Route.ActionArgs) {
   if (!url) return { error: "Please enter a Facebook profile URL." };
   if (!name) return { error: "Please enter a name." };
 
-  const identifier = extractIdentifierFromUrl(url);
-  const facebookId = identifier ?? null;
-
   await addSuggestion({
     facebook_url: url,
-    facebook_id: facebookId,
+    facebook_id: extractIdentifierFromUrl(url) ?? null,
     name,
     profile_picture: picture,
   });

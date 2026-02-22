@@ -65,6 +65,7 @@ export function extractIdentifierFromUrl(url: string): string | null {
   }
 }
 
+
 export interface FacebookProfile {
   id: string;
   name: string;
