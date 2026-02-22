@@ -1,14 +1,16 @@
 import { useState, useCallback } from "react";
-import { Form } from "react-router";
+import { redirect } from "react-router";
+import { UserButton } from "@clerk/react-router";
+import { getAuth } from "@clerk/react-router/ssr.server";
 import { SuggestionCard } from "../components/SuggestionCard";
 import { AddSuggestionModal } from "../components/AddSuggestionModal";
 import { EditSuggestionModal } from "../components/EditSuggestionModal";
 import { getAllSuggestions, type Suggestion } from "../lib/db.server";
-import { requireAccessToken } from "../lib/session.server";
 import type { Route } from "./+types/_index";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAccessToken(request);
+export async function loader(args: Route.LoaderArgs) {
+  const { userId } = await getAuth(args);
+  if (!userId) throw redirect("/sign-in");
   const suggestions = getAllSuggestions();
   return { suggestions };
 }
@@ -29,14 +31,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
           <h1 className="text-lg font-bold text-gray-900">
             <span className="text-blue-600">Crush</span>Saver
           </h1>
-          <Form method="post" action="/auth/logout">
-            <button
-              type="submit"
-              className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              Log out
-            </button>
-          </Form>
+          <UserButton />
         </div>
       </header>
 
@@ -77,10 +72,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
       </button>
 
       <AddSuggestionModal isOpen={addOpen} onClose={closeAdd} />
-      <EditSuggestionModal
-        suggestion={editingSuggestion}
-        onClose={closeEdit}
-      />
+      <EditSuggestionModal suggestion={editingSuggestion} onClose={closeEdit} />
     </div>
   );
 }

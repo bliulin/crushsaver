@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@clerk/react-router": "^2.4.7",
     "@react-router/node": "7.12.0",
     "@react-router/serve": "7.12.0",
     "better-sqlite3": "^12.6.2",

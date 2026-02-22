@@ -1,46 +1,27 @@
+import { redirect } from "react-router";
+import { getAuth } from "@clerk/react-router/ssr.server";
 import { addSuggestion } from "../lib/db.server";
-import { extractIdentifierFromUrl, lookupProfile } from "../lib/facebook.server";
-import { requireAccessToken } from "../lib/session.server";
+import { extractIdentifierFromUrl } from "../lib/facebook.server";
 import type { Route } from "./+types/suggestions.add";
 
-const useGraphApiIntegration = process.env.USE_GRAPH_API_INTEGRATION === "true";
+export async function action(args: Route.ActionArgs) {
+  const { userId } = await getAuth(args);
+  if (!userId) throw redirect("/sign-in");
 
-export async function action({ request }: Route.ActionArgs) {
-  const accessToken = await requireAccessToken(request);
-  const formData = await request.formData();
+  const formData = await args.request.formData();
   const url = (formData.get("url") as string)?.trim();
-  const manualName = (formData.get("name") as string)?.trim();
-  const manualPicture = (formData.get("picture") as string)?.trim() || null;
+  const name = (formData.get("name") as string)?.trim();
+  const picture = (formData.get("picture") as string)?.trim() || null;
 
   if (!url) return { error: "Please enter a Facebook profile URL." };
+  if (!name) return { error: "Please enter a name." };
 
-  const identifier = extractIdentifierFromUrl(url) ?? null;
-
-  if (useGraphApiIntegration) {
-    if (!identifier) {
-      return { error: "Could not parse a profile identifier from that URL." };
-    }
-    try {
-      const profile = await lookupProfile(identifier, accessToken);
-      await addSuggestion({
-        facebook_url: url,
-        facebook_id: profile.id,
-        name: profile.name,
-        profile_picture: profile.picture?.data?.url ?? null,
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      return { error: `Failed to look up profile: ${message}` };
-    }
-  } else {
-    if (!manualName) return { error: "Please enter a name." };
-    await addSuggestion({
-      facebook_url: url,
-      facebook_id: identifier,
-      name: manualName,
-      profile_picture: manualPicture,
-    });
-  }
+  await addSuggestion({
+    facebook_url: url,
+    facebook_id: extractIdentifierFromUrl(url) ?? null,
+    name,
+    profile_picture: picture,
+  });
 
   return { ok: true };
 }
