@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Form } from "react-router";
 import { SuggestionCard } from "../components/SuggestionCard";
 import { AddSuggestionModal } from "../components/AddSuggestionModal";
-import { getAllSuggestions } from "../lib/db.server";
+import { EditSuggestionModal } from "../components/EditSuggestionModal";
+import { getAllSuggestions, type Suggestion } from "../lib/db.server";
 import { requireAccessToken } from "../lib/session.server";
 import type { Route } from "./+types/_index";
 
@@ -14,7 +15,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Index({ loaderData }: Route.ComponentProps) {
   const { suggestions } = loaderData;
-  const [modalOpen, setModalOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editingSuggestion, setEditingSuggestion] = useState<Suggestion | null>(null);
+
+  const closeAdd = useCallback(() => setAddOpen(false), []);
+  const closeEdit = useCallback(() => setEditingSuggestion(null), []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,7 +55,11 @@ export default function Index({ loaderData }: Route.ComponentProps) {
         ) : (
           <div className="space-y-3">
             {suggestions.map((s) => (
-              <SuggestionCard key={s.id} suggestion={s} />
+              <SuggestionCard
+                key={s.id}
+                suggestion={s}
+                onEdit={setEditingSuggestion}
+              />
             ))}
           </div>
         )}
@@ -58,7 +67,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
 
       {/* Floating Add button */}
       <button
-        onClick={() => setModalOpen(true)}
+        onClick={() => setAddOpen(true)}
         className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full px-5 py-3 shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-2 text-sm font-medium"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,10 +76,10 @@ export default function Index({ loaderData }: Route.ComponentProps) {
         Add Facebook profile
       </button>
 
-      {/* Modal */}
-      <AddSuggestionModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+      <AddSuggestionModal isOpen={addOpen} onClose={closeAdd} />
+      <EditSuggestionModal
+        suggestion={editingSuggestion}
+        onClose={closeEdit}
       />
     </div>
   );

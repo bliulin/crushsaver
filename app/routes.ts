@@ -7,4 +7,5 @@ export default [
   route("auth/logout", "routes/auth.logout.tsx"),
   route("suggestions/add", "routes/suggestions.add.tsx"),
   route("suggestions/:id/delete", "routes/suggestions.$id.delete.tsx"),
+  route("suggestions/:id/edit", "routes/suggestions.$id.edit.tsx"),
 ] satisfies RouteConfig;

@@ -4,9 +4,10 @@ import type { Suggestion } from "../lib/db.server";
 
 interface Props {
   suggestion: Suggestion;
+  onEdit: (suggestion: Suggestion) => void;
 }
 
-export function SuggestionCard({ suggestion }: Props) {
+export function SuggestionCard({ suggestion, onEdit }: Props) {
   const linkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -56,6 +57,17 @@ export function SuggestionCard({ suggestion }: Props) {
         </a>
         <p className="text-sm text-gray-400 truncate">{suggestion.facebook_url}</p>
       </div>
+
+      <button
+        onClick={() => onEdit(suggestion)}
+        className="shrink-0 text-gray-400 hover:text-blue-500 transition-colors p-1"
+        aria-label="Edit"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      </button>
 
       <Form method="post" action={`/suggestions/${suggestion.id}/delete`}>
         <button

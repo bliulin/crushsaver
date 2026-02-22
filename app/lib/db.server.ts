@@ -1,7 +1,9 @@
 import Database from "better-sqlite3";
+import fs from "fs";
 import path from "path";
 
 const dbPath = path.resolve(process.cwd(), "data/suggestions.db");
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 let db: Database.Database;
 
@@ -57,6 +59,17 @@ export function addSuggestion(data: {
   return getDb()
     .prepare("SELECT * FROM suggestions WHERE id = ?")
     .get(result.lastInsertRowid) as Suggestion;
+}
+
+export function updateSuggestion(
+  id: number,
+  data: { facebook_url: string; name: string; profile_picture: string | null }
+): void {
+  getDb()
+    .prepare(
+      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture WHERE id = @id`
+    )
+    .run({ id, ...data });
 }
 
 export function deleteSuggestion(id: number): void {
