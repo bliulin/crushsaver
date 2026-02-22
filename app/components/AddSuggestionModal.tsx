@@ -1,38 +1,62 @@
 import { useFetcher } from "react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
+function nameFromUrl(rawUrl: string): string {
+  try {
+    const { pathname, searchParams } = new URL(rawUrl);
+    // profile.php?id=123 — no name to derive
+    if (pathname === "/profile.php" || searchParams.has("id")) return "";
+    const segments = pathname.split("/").filter(Boolean);
+    if (!segments.length) return "";
+    // /people/Firstname-Lastname/id/ → use the name segment
+    const slug = segments[0] === "people" && segments[1] ? segments[1] : segments[0];
+    return slug
+      .split(/[.\-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  } catch {
+    return "";
+  }
+}
+
 export function AddSuggestionModal({ isOpen, onClose }: Props) {
   const fetcher = useFetcher<{ error?: string }>();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const isSubmitting = fetcher.state !== "idle";
   const didSubmitRef = useRef(false);
+  const [name, setName] = useState("");
+  const nameEditedRef = useRef(false);
 
-  // Reset submission tracker when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       didSubmitRef.current = false;
-      setTimeout(() => inputRef.current?.focus(), 50);
+      nameEditedRef.current = false;
+      setName("");
+      setTimeout(() => urlInputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  // Track when a submission is in flight
   useEffect(() => {
-    if (fetcher.state === "submitting") {
-      didSubmitRef.current = true;
-    }
+    if (fetcher.state === "submitting") didSubmitRef.current = true;
   }, [fetcher.state]);
 
-  // Close only after a submission in this session succeeds
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data && !fetcher.data.error && didSubmitRef.current) {
       onClose();
     }
   }, [fetcher.state, fetcher.data, onClose]);
+
+  function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!nameEditedRef.current) {
+      setName(nameFromUrl(e.target.value));
+    }
+  }
 
   if (!isOpen) return null;
 
@@ -53,26 +77,32 @@ export function AddSuggestionModal({ isOpen, onClose }: Props) {
         <fetcher.Form method="post" action="/suggestions/add" className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-red-500">*</span>
+              Facebook Profile URL <span className="text-red-500">*</span>
             </label>
             <input
-              ref={inputRef}
-              name="name"
-              type="text"
-              placeholder="Jane Doe"
+              ref={urlInputRef}
+              name="url"
+              type="url"
+              placeholder="https://www.facebook.com/username"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              onChange={handleUrlChange}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Facebook Profile URL <span className="text-red-500">*</span>
+              Name <span className="text-red-500">*</span>
             </label>
             <input
-              name="url"
-              type="url"
-              placeholder="https://www.facebook.com/username"
+              name="name"
+              type="text"
+              placeholder="Jane Doe"
+              value={name}
+              onChange={(e) => {
+                nameEditedRef.current = true;
+                setName(e.target.value);
+              }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
