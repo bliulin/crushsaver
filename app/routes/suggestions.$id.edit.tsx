@@ -7,8 +7,8 @@ export async function action(args: Route.ActionArgs) {
   const { userId } = await getAuth(args);
   if (!userId) throw redirect("/sign-in");
 
-  const id = parseInt(args.params.id, 10);
-  if (isNaN(id)) return { error: "Invalid ID." };
+  const id = args.params.id;
+  if (!id) return { error: "Invalid ID." };
 
   const formData = await args.request.formData();
   const url = (formData.get("url") as string)?.trim();
@@ -22,7 +22,7 @@ export async function action(args: Route.ActionArgs) {
   if (!name) return { error: "Please enter a name." };
 
   try {
-    updateSuggestion(id, userId, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
+    await updateSuggestion(id, userId, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return { error: `Failed to save: ${message}` };

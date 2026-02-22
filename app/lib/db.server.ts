@@ -1,36 +1,19 @@
-import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
+import { MongoClient, ObjectId } from "mongodb";
 
-const dbPath = path.resolve(process.cwd(), "data/suggestions.db");
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const uri = process.env.MONGODB_URI ?? "mongodb://localhost:27017/crushsaver";
 
-let db: Database.Database;
+let client: MongoClient | null = null;
 
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(dbPath);
-    db.pragma("journal_mode = WAL");
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS suggestions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        facebook_url TEXT NOT NULL,
-        facebook_id TEXT,
-        name TEXT NOT NULL,
-        profile_picture TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    // Migrations: add columns if they don't exist yet
-    try { db.exec(`ALTER TABLE suggestions ADD COLUMN rating INTEGER`); } catch {}
-    try { db.exec(`ALTER TABLE suggestions ADD COLUMN tags TEXT`); } catch {}
-    try { db.exec(`ALTER TABLE suggestions ADD COLUMN user_id TEXT`); } catch {}
+async function getCollection() {
+  if (!client) {
+    client = new MongoClient(uri);
+    await client.connect();
   }
-  return db;
+  return client.db().collection("suggestions");
 }
 
 export interface Suggestion {
-  id: number;
+  id: string;
   user_id: string;
   facebook_url: string;
   facebook_id: string | null;
@@ -41,37 +24,42 @@ export interface Suggestion {
   created_at: string;
 }
 
-export function getAllSuggestions(userId: string): Suggestion[] {
-  return getDb()
-    .prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY created_at DESC")
-    .all(userId) as Suggestion[];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSuggestion(doc: any): Suggestion {
+  const { _id, ...rest } = doc;
+  return { id: (_id as ObjectId).toString(), ...rest };
 }
 
-export function addSuggestion(data: {
+export async function getAllSuggestions(userId: string): Promise<Suggestion[]> {
+  const col = await getCollection();
+  const docs = await col.find({ user_id: userId }).sort({ created_at: -1 }).toArray();
+  return docs.map(toSuggestion);
+}
+
+export async function addSuggestion(data: {
   user_id: string;
   facebook_url: string;
   facebook_id?: string | null;
   name: string;
   profile_picture?: string | null;
-}): Suggestion {
-  const stmt = getDb().prepare(`
-    INSERT INTO suggestions (user_id, facebook_url, facebook_id, name, profile_picture)
-    VALUES (@user_id, @facebook_url, @facebook_id, @name, @profile_picture)
-  `);
-  const result = stmt.run({
+}): Promise<Suggestion> {
+  const col = await getCollection();
+  const doc = {
     user_id: data.user_id,
     facebook_url: data.facebook_url,
     facebook_id: data.facebook_id ?? null,
     name: data.name,
     profile_picture: data.profile_picture ?? null,
-  });
-  return getDb()
-    .prepare("SELECT * FROM suggestions WHERE id = ?")
-    .get(result.lastInsertRowid) as Suggestion;
+    rating: null as number | null,
+    tags: null as string | null,
+    created_at: new Date().toISOString(),
+  };
+  const result = await col.insertOne(doc);
+  return { id: result.insertedId.toString(), ...doc };
 }
 
-export function updateSuggestion(
-  id: number,
+export async function updateSuggestion(
+  id: string,
   userId: string,
   data: {
     facebook_url: string;
@@ -80,14 +68,15 @@ export function updateSuggestion(
     rating: number | null;
     tags: string | null;
   }
-): void {
-  getDb()
-    .prepare(
-      `UPDATE suggestions SET facebook_url = @facebook_url, name = @name, profile_picture = @profile_picture, rating = @rating, tags = @tags WHERE id = @id AND user_id = @user_id`
-    )
-    .run({ id, user_id: userId, ...data });
+): Promise<void> {
+  const col = await getCollection();
+  await col.updateOne(
+    { _id: new ObjectId(id), user_id: userId },
+    { $set: data }
+  );
 }
 
-export function deleteSuggestion(id: number, userId: string): void {
-  getDb().prepare("DELETE FROM suggestions WHERE id = ? AND user_id = ?").run(id, userId);
+export async function deleteSuggestion(id: string, userId: string): Promise<void> {
+  const col = await getCollection();
+  await col.deleteOne({ _id: new ObjectId(id), user_id: userId });
 }

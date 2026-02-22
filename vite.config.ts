@@ -8,7 +8,4 @@ export default defineConfig({
     port: 50023,
   },
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
-  ssr: {
-    external: ["better-sqlite3"],
-  },
 });

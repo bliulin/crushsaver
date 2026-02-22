@@ -11,7 +11,8 @@
       "Bash(cd /c/dev/crushsaver && npm run dev 2>&1)",
       "Bash(netstat:*)",
       "Bash(tasklist:*)",
-      "Bash(cmd.exe:*)"
+      "Bash(cmd.exe:*)",
+      "Bash(cd:*)"
     ]
   }
 }

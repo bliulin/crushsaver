@@ -7,8 +7,8 @@ export async function action(args: Route.ActionArgs) {
   const { userId } = await getAuth(args);
   if (!userId) throw redirect("/sign-in");
 
-  const id = parseInt(args.params.id, 10);
-  if (!isNaN(id)) deleteSuggestion(id, userId);
+  const id = args.params.id;
+  if (id) await deleteSuggestion(id, userId);
 
   return redirect("/");
 }
