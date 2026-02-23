@@ -5,9 +5,11 @@ import type { Suggestion } from "../lib/db.server";
 interface Props {
   suggestion: Suggestion;
   onEdit: (suggestion: Suggestion) => void;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  isDragging?: boolean;
 }
 
-export function SuggestionCard({ suggestion, onEdit }: Props) {
+export function SuggestionCard({ suggestion, onEdit, dragHandleProps, isDragging }: Props) {
   const linkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -25,7 +27,17 @@ export function SuggestionCard({ suggestion, onEdit }: Props) {
   }, [suggestion.facebook_id, suggestion.facebook_url]);
 
   return (
-    <div className="flex items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+    <div className={`flex items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 ${isDragging ? "opacity-50" : ""}`}>
+      <div
+        {...dragHandleProps}
+        className="shrink-0 text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none"
+        aria-label="Drag to reorder"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM7 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM7 16a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+        </svg>
+      </div>
+
       <a
         ref={linkRef}
         href={suggestion.facebook_url}

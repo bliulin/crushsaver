@@ -1,7 +1,22 @@
-import { useState, useCallback } from "react";
-import { redirect } from "react-router";
+import { useState, useCallback, useEffect } from "react";
+import { redirect, useFetcher } from "react-router";
 import { UserButton } from "@clerk/react-router";
 import { getAuth } from "@clerk/react-router/ssr.server";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { SuggestionCard } from "../components/SuggestionCard";
 import { AddSuggestionModal } from "../components/AddSuggestionModal";
 import { EditSuggestionModal } from "../components/EditSuggestionModal";
@@ -15,13 +30,66 @@ export async function loader(args: Route.LoaderArgs) {
   return { suggestions };
 }
 
+function SortableCard({
+  suggestion,
+  onEdit,
+}: {
+  suggestion: Suggestion;
+  onEdit: (s: Suggestion) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: suggestion.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SuggestionCard
+        suggestion={suggestion}
+        onEdit={onEdit}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
 export default function Index({ loaderData }: Route.ComponentProps) {
   const { suggestions } = loaderData;
   const [addOpen, setAddOpen] = useState(false);
   const [editingSuggestion, setEditingSuggestion] = useState<Suggestion | null>(null);
+  const [items, setItems] = useState(suggestions);
+  const reorderFetcher = useFetcher();
+
+  // Keep local list in sync when loader refreshes (e.g. after add/delete)
+  useEffect(() => {
+    setItems(suggestions);
+  }, [suggestions]);
 
   const closeAdd = useCallback(() => setAddOpen(false), []);
   const closeEdit = useCallback(() => setEditingSuggestion(null), []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((s) => s.id === active.id);
+    const newIndex = items.findIndex((s) => s.id === over.id);
+    const newItems = arrayMove(items, oldIndex, newIndex);
+
+    setItems(newItems);
+    reorderFetcher.submit(
+      { ids: JSON.stringify(newItems.map((s) => s.id)) },
+      { method: "post", action: "/suggestions/reorder" }
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,7 +105,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
 
       {/* Main content */}
       <main className="max-w-xl mx-auto px-4 py-6">
-        {suggestions.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-5xl mb-4">💝</div>
             <h2 className="text-xl font-semibold text-gray-700 mb-2">
@@ -48,15 +116,19 @@ export default function Index({ loaderData }: Route.ComponentProps) {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {suggestions.map((s) => (
-              <SuggestionCard
-                key={s.id}
-                suggestion={s}
-                onEdit={setEditingSuggestion}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={items.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {items.map((s) => (
+                  <SortableCard key={s.id} suggestion={s} onEdit={setEditingSuggestion} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </main>
 

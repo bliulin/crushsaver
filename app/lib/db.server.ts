@@ -32,7 +32,7 @@ function toSuggestion(doc: any): Suggestion {
 
 export async function getAllSuggestions(userId: string): Promise<Suggestion[]> {
   const col = await getCollection();
-  const docs = await col.find({ user_id: userId }).sort({ created_at: -1 }).toArray();
+  const docs = await col.find({ user_id: userId }).sort({ position: 1, created_at: -1 }).toArray();
   return docs.map(toSuggestion);
 }
 
@@ -44,6 +44,8 @@ export async function addSuggestion(data: {
   profile_picture?: string | null;
 }): Promise<Suggestion> {
   const col = await getCollection();
+  const last = await col.findOne({ user_id: data.user_id }, { sort: { position: -1 } });
+  const position = last && typeof last.position === "number" ? last.position + 1 : 0;
   const doc = {
     user_id: data.user_id,
     facebook_url: data.facebook_url,
@@ -52,10 +54,23 @@ export async function addSuggestion(data: {
     profile_picture: data.profile_picture ?? null,
     rating: null as number | null,
     tags: null as string | null,
+    position,
     created_at: new Date().toISOString(),
   };
   const result = await col.insertOne(doc);
   return { id: result.insertedId.toString(), ...doc };
+}
+
+export async function reorderSuggestions(userId: string, orderedIds: string[]): Promise<void> {
+  const col = await getCollection();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      col.updateOne(
+        { _id: new ObjectId(id), user_id: userId },
+        { $set: { position: index } }
+      )
+    )
+  );
 }
 
 export async function updateSuggestion(
