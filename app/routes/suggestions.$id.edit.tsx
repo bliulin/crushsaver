@@ -17,12 +17,13 @@ export async function action(args: Route.ActionArgs) {
   const ratingRaw = parseInt(formData.get("rating") as string, 10);
   const rating = ratingRaw >= 1 && ratingRaw <= 5 ? ratingRaw : null;
   const tagsRaw = (formData.get("tags") as string) || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
 
   if (!url) return { error: "Please enter a Facebook profile URL." };
   if (!name) return { error: "Please enter a name." };
 
   try {
-    await updateSuggestion(id, userId, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw });
+    await updateSuggestion(id, userId, { facebook_url: url, name, profile_picture: picture, rating, tags: tagsRaw, notes });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return { error: `Failed to save: ${message}` };

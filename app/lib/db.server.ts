@@ -21,6 +21,7 @@ export interface Suggestion {
   profile_picture: string | null;
   rating: number | null;
   tags: string | null; // JSON-encoded string[]
+  notes: string | null;
   created_at: string;
 }
 
@@ -82,6 +83,7 @@ export async function updateSuggestion(
     profile_picture: string | null;
     rating: number | null;
     tags: string | null;
+    notes: string | null;
   }
 ): Promise<void> {
   const col = await getCollection();
